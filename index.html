@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>✠Freecoin Minter</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; line-height: 1.5; }
+        .card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #output { background: #222; color: #0f0; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; min-height: 100px; }
+        progress { width: 100%; height: 25px; }
+        .stats { display: flex; justify-content: space-between; font-size: 0.9rem; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>✠ Freecoin Minter</h1>
+
+    <label>
+        Amount to Mint (Freecoins): ✠
+        <input type="number" id="coinInput" value="0.01" step="0.01" min="0.0001">
+    </label>
+    <p style="font-size: 0.8rem; color: #888;">1 Freecoin = 1,000,000 Squarings</p>
+
+    <button id="mintBtn" style="padding: 10px 20px; cursor: pointer;">Start Minting</button>
+
+    <div style="margin: 20px 0;">
+        <progress id="progress" max="100" value="0"></progress>
+        <div class="stats">
+            <span id="statusText">Ready</span>
+            <span id="percentText">0%</span>
+        </div>
+    </div>
+
+    <h3>Resulting Pyx (JSON):</h3>
+    <pre id="output">Output will appear here...</pre>
+</div>
+
+<script type="module">
+    import { Pyx, mintPyx } from './js/freecoin.js';
+
+    const ITERATIONS_PER_COIN = 1_000_000;
+    const btn = document.getElementById('mintBtn');
+    const outputEl = document.getElementById('output');
+    const progressEl = document.getElementById('progress');
+    const coinInput = document.getElementById('coinInput');
+    const statusText = document.getElementById('statusText');
+    const percentText = document.getElementById('percentText');
+
+    btn.addEventListener('click', async () => {
+        // 1. Convert Coins to Iterations
+        const coins = parseFloat(coinInput.value) || 0.01;
+        const iterations = Math.floor(coins * ITERATIONS_PER_COIN);
+
+        // 2. Setup Identities
+        const minterId = crypto.getRandomValues(new Uint8Array(32));
+        const challenge = crypto.getRandomValues(new Uint8Array(32));
+
+        // 3. UI Reset
+        btn.disabled = true;
+        statusText.textContent = 'Calculating VDF...';
+        outputEl.textContent = 'Working...';
+
+        try {
+            const pyx = await mintPyx(minterId, challenge, iterations, (pct, total) => {
+                // Note: our new mintPyx sends 'pct' as 0-100, so we use it directly
+                progressEl.max = 100;
+                progressEl.value = pct;
+                percentText.textContent = pct + '%';
+
+                // Update text based on the phase
+                if (pct < 50) {
+                    statusText.textContent = 'Calculating VDF (Squaring)...';
+                } else if (pct < 100) {
+                    statusText.textContent = 'Generating Wesolowski Proof...';
+                } else {
+                    statusText.textContent = 'Finalizing...';
+                }
+            });
+
+            // 4. Verify (IMPORTANT: Must await)
+            statusText.textContent = 'Verifying Proof...';
+            const verification = await pyx.verify();
+
+            // 5. Final Display
+            outputEl.textContent = JSON.stringify(pyx.toJSON(), null, 2);
+
+            if (verification.valid) {
+                statusText.textContent = `✅ Successfully Minted ${coins} Freecoins!`;
+            } else {
+                statusText.textContent = `❌ Verification Failed: ${verification.error}`;
+            }
+        } catch (err) {
+            outputEl.textContent = "Error: " + err.message;
+            statusText.textContent = "❌ Error occurred.";
+        } finally {
+            btn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>
