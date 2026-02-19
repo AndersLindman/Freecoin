@@ -176,7 +176,8 @@ class Pyx {
             const L = await findPrimeAfter(bigIntToUint8Array(this.#result));
             const r = modPow(2n, BigInt(this.#iterations), L);
             const term1 = modPow(this.#proof, L, N);
-            const term2 = modPow(bytesToBigInt(this.#challenge), r, N);
+            const x = await deriveBaseX(this.#minterId, this.#challenge, this.#iterations);
+            const term2 = modPow(x, r, N);
             const lhs = (term1 * term2) % N;
 
             if (lhs === this.#result) {
@@ -225,7 +226,7 @@ class Pyx {
 // --- 5. Public Minting Function ---
 export async function mintPyx(minterId, challenge, iterations, onProgress = null) {
     const pyx = new Pyx(minterId, challenge, iterations);
-    const x = bytesToBigInt(challenge);
+    const x = await deriveBaseX(minterId, challenge, iterations);
     const chunkSize = 1000;
 
     // --- Phase 1: Sequential Squaring (0% → 70%) ---
@@ -235,7 +236,7 @@ export async function mintPyx(minterId, challenge, iterations, onProgress = null
         for (let j = i; j < end; j++) result = (result * result) % N;
 
         if (onProgress) {
-            const pct = Math.floor((end / iterations) * 70);  // 0 → 70
+            const pct = Math.floor((end / iterations) * 50);  // 0 → 70
             onProgress(pct);
         }
         if (i % 50000 === 0) await new Promise(r => setTimeout(r, 0));
@@ -243,9 +244,7 @@ export async function mintPyx(minterId, challenge, iterations, onProgress = null
     pyx.setResult(result);
 
     // --- Phase 2: Derive Prime L (70% → 75%) ---
-    if (onProgress) onProgress(72);  // Small bump for prime search
     const L = await findPrimeAfter(bigIntToUint8Array(result));
-    if (onProgress) onProgress(75);
 
     // --- Phase 3: Proof Generation (75% → 100%) ---
     let proof = 1n;
@@ -263,7 +262,7 @@ export async function mintPyx(minterId, challenge, iterations, onProgress = null
         }
 
         if (onProgress) {
-            const pct = 75 + Math.floor(((end / iterations) * 25));  // 75 → 100
+            const pct = 50 + Math.floor(((end / iterations) * 50));  // 50 → 100
             onProgress(pct);
         }
         if (i % 50000 === 0) await new Promise(r => setTimeout(r, 0));
@@ -274,6 +273,20 @@ export async function mintPyx(minterId, challenge, iterations, onProgress = null
 
     if (onProgress) onProgress(100);  // Ensure 100% at end
     return pyx;
+}
+
+async function deriveBaseX(minterId, challenge, iterations) {
+    // 1. Concatenate inputs: [minterId (32b)] + [challenge (32b)] + [iterations (8b)]
+    const iterBytes = new BigUint64Array([BigInt(iterations)]);
+    const combined = new Uint8Array([...minterId, ...challenge, ...new Uint8Array(iterBytes.buffer).reverse()]);
+
+    // 2. Hash them
+    const hashBuffer = await crypto.subtle.digest('SHA-256', combined);
+    const hashArray = new Uint8Array(hashBuffer);
+
+    // 3. Convert to BigInt and ensure it is < N and > 1
+    // (We use % N to keep it in the group)
+    return BigInt('0x' + Array.from(hashArray).map(b => b.toString(16).padStart(2, '0')).join('')) % N;
 }
 
 export function validatePyxSchema(data) {
