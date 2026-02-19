@@ -2,10 +2,10 @@
   "name": "freecoin",
   "version": "1.0.0",
   "description": "Pure JavaScript RSA-2048 Wesolowski VDF Protocol",
-  "main": "freecoin.js",
+  "main": "js/freecoin.js",
   "type": "module",
   "scripts": {
-    "test": "node test.js"
+    "test": "node js/test.js"
   },
   "keywords": [
     "vdf",
