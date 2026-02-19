@@ -168,7 +168,7 @@ For Node.js.
 
 ```bash
 # Clone the repository
-git clone [https://github.com/yourusername/freecoin.git](https://github.com/yourusername/freecoin.git)
+git clone https://github.com/AndersLindman/freecoin.git
 
 # Move to directory
 cd freecoin
