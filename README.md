@@ -20,7 +20,7 @@ The core of Freecoin is a **Time-Lock Puzzle** (first proposed by Rivest, Shamir
 
 A user must perform  sequential modular squarings to arrive at a result. Because each squaring depends on the result of the previous one, the work cannot be parallelized across multiple CPU cores. Once finished, the user generates a tiny cryptographic proof that allows anyone else to verify the work instantly without re-running the hours or days of computation.
 
----
+
 
 ## 🚀 Use Cases
 
@@ -29,7 +29,7 @@ A user must perform  sequential modular squarings to arrive at a result. Because
 * **Decentralized Lotteries:** Provide a source of randomness that cannot be predicted until a specific amount of time has passed.
 * **Rate Limiting:** Protect APIs by requiring a VDF proof for high-frequency requests.
 
----
+
 
 ## 🛠 Technical Description
 
@@ -49,15 +49,14 @@ While Wesolowski (2018) identifies that proof generation can be optimized to  ti
 * **Democratization:** The bottleneck is raw BigInt arithmetic, not memory bandwidth. This levels the playing field between mobile phones and high-end servers.
 * **Trustless Setup:** Uses the official **RSA-2048 Challenge Modulus**. Since the factors of this 2048-bit number have been unknown since 1991, there is no "backdoor" for the developer to skip the work.
 
----
 
-# 📖 Mathematical Specification (Version 1.0)
+
+## 📖 Mathematical Specification (Version 1.0)
 
 To ensure interoperability between implementations (e.g., JavaScript, Rust, Go), Freecoin follows a strict deterministic pipeline based on the Wesolowski VDF.
 
----
 
-## 1. The Parameters
+### 1. The Parameters
 
 * **Modulus ($N$):**
   The RSA-2048 Challenge Number (617 decimal digits).
@@ -72,9 +71,9 @@ $$
 * **Exponent:**
   $2^T$, where $T$ is the number of iterations (squarings).
 
----
 
-## 2. Hash-to-Prime (The Random Oracle)
+
+### 2. Hash-to-Prime (The Random Oracle)
 
 Freecoin uses a non-interactive challenge prime $L$.
 
@@ -94,9 +93,9 @@ Starting from the seed:
 
 This $L$ acts as the "challenge" that prevents a prover from cheating.
 
----
 
-## 3. The Proof ($\pi$)
+
+### 3. The Proof ($\pi$)
 
 The proof is computed using the **Steady-State streaming approach** to calculate the quotient of $2^T$ divided by $L$ without ever materializing the massive integer $2^T$:
 
@@ -104,9 +103,9 @@ $$
 \pi = x^{\left\lfloor \frac{2^T}{L} \right\rfloor} \pmod N
 $$
 
----
 
-## 4. Verification
+
+### 4. Verification
 
 A Pyx is valid **if and only if**:
 
@@ -124,9 +123,9 @@ $$
    \pi^L \cdot x^r \equiv y \pmod N
 $$
 
----
 
-# 📋 Serialization Standard
+
+## 📋 Serialization Standard
 
 To maintain a consistent `pyxId`, data must be serialized in the following order:
 
@@ -139,7 +138,7 @@ To maintain a consistent `pyxId`, data must be serialized in the following order
 | 5     | `y`          | `Bytes[256]` | The result of the VDF (2048 bits)   |
 | 6     | `proof`      | `Bytes[256]` | The Wesolowski proof ($\pi$)        |
 
----
+
 
 
 ## 📦 Installation & Usage
@@ -163,9 +162,21 @@ const { valid, error } = await pyx.verify();
 console.log(valid ? "✅ Valid Proof" : `❌ Invalid: ${error}`);
 
 ```
+### ✠ Quick Start
 
----
+For Node.js.
+
+```bash
+# Clone the repository
+git clone [https://github.com/yourusername/freecoin.git](https://github.com/yourusername/freecoin.git)
+
+# Move to directory
+cd freecoin
+
+# Run the test suite to verify the VDF logic
+npm test
+```
 
 ## ⚖️ License
 
-**CC0-1.0 Universal** (Public Domain). Freecoin is a public utility for the decentralized web.
+**CC0-1.0 Universal** (Public Domain). Freecoin is a public utility for centralized and decentralized systems.
