@@ -1,0 +1,22 @@
+{
+  "name": "freecoin",
+  "version": "1.0.0",
+  "description": "Pure JavaScript RSA-2048 Wesolowski VDF Protocol",
+  "main": "freecoin.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "vdf",
+    "cryptography",
+    "proof-of-effort",
+    "wesolowski",
+    "rsa-2048"
+  ],
+  "author": "Anders Lindman",
+  "license": "CC0-1.0",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
