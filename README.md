@@ -1,3 +1,5 @@
+<br>
+<br>
 <p align="center">
   <img src="images/logo.png" alt="Freecoin Logo" width="300">
 </p>
@@ -48,6 +50,97 @@ While Wesolowski (2018) identifies that proof generation can be optimized to  ti
 * **Trustless Setup:** Uses the official **RSA-2048 Challenge Modulus**. Since the factors of this 2048-bit number have been unknown since 1991, there is no "backdoor" for the developer to skip the work.
 
 ---
+
+# 📖 Mathematical Specification (Version 1.0)
+
+To ensure interoperability between implementations (e.g., JavaScript, Rust, Go), Freecoin follows a strict deterministic pipeline based on the Wesolowski VDF.
+
+---
+
+## 1. The Parameters
+
+* **Modulus ($N$):**
+  The RSA-2048 Challenge Number (617 decimal digits).
+
+* **Base ($x$):**
+  A starting point in the group, derived via:
+
+$$
+  x = \text{SHA-256}(\text{minterId} \parallel \text{challenge} \parallel \text{iterations})
+$$
+
+* **Exponent:**
+  $2^T$, where $T$ is the number of iterations (squarings).
+
+---
+
+## 2. Hash-to-Prime (The Random Oracle)
+
+Freecoin uses a non-interactive challenge prime $L$.
+
+To ensure $L$ is chosen fairly, we use a seed derived from the VDF result $y$.
+
+### Seed Generation
+
+$$
+\text{seed} = \text{SHA-256}(y)
+$$
+
+### Deterministic Search
+
+Starting from the seed:
+
+* Find the first prime $L > 2^{128}$
+
+This $L$ acts as the "challenge" that prevents a prover from cheating.
+
+---
+
+## 3. The Proof ($\pi$)
+
+The proof is computed using the **Steady-State streaming approach** to calculate the quotient of $2^T$ divided by $L$ without ever materializing the massive integer $2^T$:
+
+$$
+\pi = x^{\left\lfloor \frac{2^T}{L} \right\rfloor} \pmod N
+$$
+
+---
+
+## 4. Verification
+
+A Pyx is valid **if and only if**:
+
+1. The prime $L$ is correctly regenerated from $y$.
+
+2. The remainder $r$ is calculated:
+
+$$
+   r = 2^T \pmod L
+$$
+
+3. The following identity holds:
+
+$$
+   \pi^L \cdot x^r \equiv y \pmod N
+$$
+
+---
+
+# 📋 Serialization Standard
+
+To maintain a consistent `pyxId`, data must be serialized in the following order:
+
+| Order | Field        | Type         | Description                         |
+| ----- | ------------ | ------------ | ----------------------------------- |
+| 1     | `version`    | `Uint8`      | Protocol version (currently `0x01`) |
+| 2     | `minterId`   | `Bytes[32]`  | The user's public identity          |
+| 3     | `challenge`  | `Bytes[32]`  | The unique entropy for this mint    |
+| 4     | `iterations` | `Uint64BE`   | Big-endian 64-bit integer ($T$)     |
+| 5     | `y`          | `Bytes[256]` | The result of the VDF (2048 bits)   |
+| 6     | `proof`      | `Bytes[256]` | The Wesolowski proof ($\pi$)        |
+
+---
+
 
 ## 📦 Installation & Usage
 
