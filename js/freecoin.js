@@ -229,24 +229,24 @@ export async function mintPyx(minterId, challenge, iterations, onProgress = null
     const x = await deriveBaseX(minterId, challenge, iterations);
     const chunkSize = 1000;
 
-    // --- Phase 1: Sequential Squaring (0% → 70%) ---
+    // --- Phase 1: Sequential Squaring (0% → 50%) ---
     let result = x;
     for (let i = 0; i < iterations; i += chunkSize) {
         const end = Math.min(i + chunkSize, iterations);
         for (let j = i; j < end; j++) result = (result * result) % N;
 
         if (onProgress) {
-            const pct = Math.floor((end / iterations) * 50);  // 0 → 70
+            const pct = Math.floor((end / iterations) * 50);  // 0 → 50
             onProgress(pct);
         }
         if (i % 50000 === 0) await new Promise(r => setTimeout(r, 0));
     }
     pyx.setResult(result);
 
-    // --- Phase 2: Derive Prime L (70% → 75%) ---
+    // --- Phase 2: Derive Prime L ---
     const L = await findPrimeAfter(bigIntToUint8Array(result));
 
-    // --- Phase 3: Proof Generation (75% → 100%) ---
+    // --- Phase 3: Proof Generation (50% → 100%) ---
     let proof = 1n;
     let remainder = 1n;
 
@@ -301,3 +301,4 @@ export function validatePyxSchema(data) {
 }
 
 export { Pyx };
+
